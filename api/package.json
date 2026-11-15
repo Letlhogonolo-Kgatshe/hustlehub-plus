@@ -1,0 +1,43 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "dev": "nodemon src/server.js",
+    "seed:admin": "node scripts/seedAdmin.js",
+    "db:create-user": "node scripts/createDbUser.js",
+    "test:unit": "node --test",
+    "test:api": "npx --yes newman run ../postman/HustleHub_Part2_Auth_Gigs.postman_collection.json --insecure",
+    "lint": "eslint .",
+    "lint:report": "eslint . -f json -o ../evidence/eslint-api.json",
+    "audit:report": "npm audit --json > ../evidence/npm-audit-api.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "express-validator": "^7.3.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.10.4",
+    "winston": "^3.19.0",
+    "winston-transport": "^4.9.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-security": "^4.2.1",
+    "globals": "^17.14.0",
+    "nodemon": "^3.1.14"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true
+  }
+}

@@ -1,0 +1,47 @@
+HustleHub+ static analysis summary
+Generated 2026-11-09 from the commands the CI pipeline runs, on the final merged code.
+
+ESLint (api, with eslint-plugin-security)
+  files scanned   48
+  errors          0
+  warnings        0
+
+ESLint (client)
+  files scanned   52
+  errors          0
+  warnings        0
+
+Semgrep (p/javascript and p/security-audit)
+  files scanned   116
+  rules run       101
+  findings        1 (warning, no errors)
+
+  client/nginx.conf:18  generic.nginx.security.header-redefinition
+    The /healthz location sets its own add_header, and nginx then stops applying the
+    add_header directives from the server block to that location. The health endpoint
+    therefore answers without the Content-Security-Policy, X-Content-Type-Options,
+    Referrer-Policy and X-Frame-Options headers that every other response carries.
+    It returns the fixed string "ok" and no user data, so nothing is exposed, but the
+    headers should still be consistent across the whole site.
+
+npm audit (api, all dependencies)
+  critical 0, high 0, moderate 5, low 0
+
+npm audit (client, all dependencies)
+  critical 0, high 0, moderate 4, low 0
+
+npm audit, production dependencies only (the pipeline gate)
+  api      0 vulnerabilities
+  client   0 vulnerabilities
+
+The remaining advisories are in development dependencies only. The production images are
+built with "npm ci --omit=dev", so those packages are never installed into a running
+container. The pipeline fails on "npm audit --omit=dev --audit-level=high", which covers
+everything that ships.
+
+Full machine-readable output:
+  eslint-api.json
+  eslint-client.json
+  semgrep.json
+  npm-audit-api.json
+  npm-audit-client.json

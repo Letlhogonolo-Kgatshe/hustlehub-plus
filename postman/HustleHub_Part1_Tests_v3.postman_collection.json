@@ -1,0 +1,1056 @@
+{
+  "info": {
+    "name": "HustleHub+ API Test Suite (Part 2)",
+    "description": "Covers authentication, gig management, bookings and transactions, income, role based access control and the Part 2 security controls.\n\nBefore a full run:\n\n1. Start the database and the API, and run \"npm run db:create-user\" once in the api folder if you have not already.\n2. Set AUTH_RATE_LIMIT_MAX=25 in api/.env and restart the API. The suite makes twenty-two requests to the authentication endpoints, and folder 10 then deliberately exhausts what is left.\n3. Restart the API between full runs. The rate limiter counts in memory, so a restart clears it without waiting out the fifteen minute window.\n4. Optional: to run the four admin checks, pass adminEmail and adminPassword (ADMIN_EMAIL and ADMIN_PASSWORD from api/.env) with newman --env-var or --global-var, or a Postman environment. Do not add them to this collection's variables: an empty collection variable hides a --global-var value and the admin checks would be skipped. Never save them in this file. Without them those requests are skipped.\n5. For a meaningful expired token check, run \"node generate-expired-token.js\" in the api folder and put the result in the expiredToken variable.\n\nWith Newman:\n\n  newman run postman/HustleHub_Part1_Tests_v3.postman_collection.json --insecure\n\n--insecure is required because the API uses a locally generated mkcert certificate.\n\nFolder 10 runs last on purpose. It exhausts the login rate limit, so any request to /api/login after it would be answered with 429.\n\nEach run creates three accounts with generated email addresses, one gig, and one booking with its transaction. The gig is deleted by the last request in folder 10. Accounts, bookings and transactions remain, because the API has no endpoints to delete them; clear the hustlehub database directly before recording a demo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "d531f64d-0b4c-4025-83e4-3a6ab6941f4c"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:5000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "testEmail",
+      "value": "testuser@example.com"
+    },
+    {
+      "key": "testPassword",
+      "value": "StrongPass1!"
+    },
+    {
+      "key": "expiredToken",
+      "value": ""
+    },
+    {
+      "key": "rateLimitAttempts",
+      "value": "0"
+    },
+    {
+      "key": "testRole",
+      "value": "client"
+    },
+    {
+      "key": "client2Email",
+      "value": ""
+    },
+    {
+      "key": "client2Token",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "wrongPasswordMs",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Register",
+      "item": [
+        {
+          "name": "Valid registration -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"{{testRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('testEmail', `testuser+${Date.now()}@example.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response does not contain password', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(JSON.stringify(body)).to.not.include('password');",
+                  "});",
+                  "pm.test('Response contains user id and email', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.user).to.have.property('id');",
+                  "  pm.expect(body.user).to.have.property('email');",
+                  "});",
+                  "",
+                  "pm.test('Account is created with the requested role', () => {",
+                  "  pm.expect(pm.response.json().user.role).to.eql(pm.collectionVariables.get('testRole'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Duplicate email -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"{{testRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Message does not confirm which field is wrong beyond email', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.message.toLowerCase()).to.include('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "description": "Run this AFTER 'Valid registration' so the email already exists.",
+          "response": []
+        },
+        {
+          "name": "Invalid email format -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"{{testRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Weak password -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"weakpass@example.com\",\n  \"password\": \"weak\",\n  \"role\": \"{{testRole}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Password over 72 bytes -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"long-password@example.com\",\n  \"password\": \"Aa1!😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀1\",\n  \"role\": \"client\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('The error is about the password', () => pm.expect(pm.response.json().errors.map((e) => e.field)).to.include('password'));"
+                ]
+              }
+            }
+          ],
+          "description": "73 bytes but only 25 characters (emoji are 4 bytes each). bcrypt reads only 72 bytes, so the API refuses it instead of silently cutting it short."
+        },
+        {
+          "name": "11-character password -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"short-password@example.com\",\n  \"password\": \"Abcdefg1!23\",\n  \"role\": \"client\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('The message asks for 12 characters', () => pm.expect(JSON.stringify(pm.response.json().errors)).to.include('12'));"
+                ]
+              }
+            }
+          ],
+          "description": "The API requires 12 characters, the same as the register page."
+        },
+        {
+          "name": "Missing fields -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Login",
+      "item": [
+        {
+          "name": "Valid login -> 200 + token (saves token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response contains a token', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('token');",
+                  "  pm.collectionVariables.set('token', body.token);",
+                  "});",
+                  "pm.test('Response does not contain password hash', () => {",
+                  "  pm.expect(pm.response.text()).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "description": "Run this before any Protected Route request - it auto-saves the token to {{token}}.",
+          "response": []
+        },
+        {
+          "name": "Wrong password -> 401 (generic message)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"WrongPassword1!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Message is the generic \"Invalid email or password\"', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.error).to.eql('Invalid email or password');",
+                  "});",
+                  "pm.collectionVariables.set('wrongPasswordMs', pm.response.responseTime);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Non-existent email -> 401 (SAME generic message)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doesnotexist@example.com\",\n  \"password\": \"{{testPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Message matches wrong-password case exactly (prevents user enumeration)', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.error).to.eql('Invalid email or password');",
+                  "});",
+                  "pm.test('Takes about as long as a wrong password, so timing does not reveal the account', () => pm.expect(pm.response.responseTime).to.be.at.least(Number(pm.collectionVariables.get('wrongPasswordMs')) / 2));"
+                ]
+              }
+            }
+          ],
+          "description": "Compare this response BYTE-FOR-BYTE against 'Wrong password'. If they differ at all, that is a user-enumeration vulnerability.",
+          "response": []
+        },
+        {
+          "name": "Login password over 72 bytes -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Aa1!😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('No token is issued', () => pm.expect(pm.response.json()).to.not.have.property('token'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing fields -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Protected Route (/api/profile)",
+      "item": [
+        {
+          "name": "Valid token -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response contains user id and role', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.user).to.have.property('id');",
+                  "  pm.expect(body.user).to.have.property('role');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "description": "Run 'Valid login' first so {{token}} is populated.",
+          "response": []
+        },
+        {
+          "name": "No token -> 401",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Malformed token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer not.a.real.token"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Message does not distinguish malformed from expired', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.error).to.eql('Invalid or expired token');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Expired token -> 401 (manual)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer PASTE_EXPIRED_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "description": "Generate a short-lived token manually with a throwaway script:\n\nrequire('dotenv').config();\nconst jwt = require('jsonwebtoken');\nconsole.log(jwt.sign({ id: 'test', role: 'freelancer' }, process.env.JWT_SECRET, { expiresIn: '1s' }));\n\nRun it, wait 2 seconds, paste the token into the Authorization header above, then send.",
+          "response": []
+        },
+        {
+          "name": "Token signed with wrong secret -> 401 (manual)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer PASTE_WRONG_SECRET_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "description": "Sign a token with a DIFFERENT secret than the one in .env, to prove signature verification (not just presence) is enforced:\n\nconst jwt = require('jsonwebtoken');\nconsole.log(jwt.sign({ id: 'test', role: 'freelancer' }, 'a-completely-different-secret', { expiresIn: '1h' }));\n\nPaste the result above and send.",
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Error Handling",
+      "item": [
+        {
+          "name": "Malformed JSON body -> 400, no stack trace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ this is not valid json"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Response does not leak stack trace or file paths', () => {",
+                  "  const text = pm.response.text();",
+                  "  pm.expect(text).to.not.include('at Object.');",
+                  "  pm.expect(text).to.not.include('.js:');",
+                  "  pm.expect(text.toLowerCase()).to.not.include('c:\\\\users');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Marketplace setup (test accounts)",
+      "description": "Creates the accounts the marketplace folders use. Emails are generated per run so the collection can be run repeatedly without clearing the database.",
+      "item": [
+        {
+          "name": "Register a second client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{client2Email}}\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"client\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('client2Email', `client-b+${Date.now()}@example.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('a second client is registered', () => pm.response.to.have.status(201));",
+                  "pm.test('Account has the client role', () => pm.expect(pm.response.json().user.role).to.eql('client'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log in the second client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{client2Email}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('the second client can log in', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('A token is returned', () => pm.expect(body).to.have.property('token'));",
+                  "pm.collectionVariables.set('client2Token', body.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Role and ownership rules",
+      "description": "Role-based access control. Nobody may act outside their role, and no freelancer may touch gigs belonging to another freelancer.",
+      "item": [
+        {
+          "name": "Log in as admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get('adminEmail') || !pm.variables.get('adminPassword')) {",
+                  "  console.log('Admin checks skipped: pass adminEmail and adminPassword with --env-var or --global-var to run them');",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('The admin can log in', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('The account has the admin role', () => pm.expect(body.user.role).to.eql('admin'));",
+                  "pm.collectionVariables.set('adminToken', body.token);"
+                ]
+              }
+            }
+          ],
+          "description": "The admin account comes from \"npm run seed:admin\". Its email and password are never saved in this file. Pass them to Newman with --env-var or --global-var (or a Postman environment) to run the four admin checks; without them those requests are skipped and the rest of the suite still runs."
+        },
+        {
+          "name": "Admin lists users -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get('adminEmail') || !pm.variables.get('adminPassword')) {",
+                  "  console.log('Admin checks skipped: pass adminEmail and adminPassword with --env-var or --global-var to run them');",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Users are listed', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('The list is paged', () => { pm.expect(body.page).to.eql(1); pm.expect(body.limit).to.be.at.most(50); pm.expect(body.total).to.be.at.least(body.users.length); });",
+                  "pm.test('Each user shows only id, email, role and createdAt', () => body.users.forEach((u) => pm.expect(Object.keys(u).sort()).to.eql(['createdAt', 'email', 'id', 'role'])));",
+                  "pm.test('No password hash anywhere', () => pm.expect(pm.response.text()).to.not.match(/passwordHash|\\$2[aby]\\$/));",
+                  "pm.test('The new client is in the list', () => pm.expect(body.users.map((u) => u.email)).to.include(pm.collectionVariables.get('client2Email')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout ends the session -> 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{client2Token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logged out', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "description": "Logout raises the account's token version on the server, so every token issued before it stops working."
+        },
+        {
+          "name": "The logged-out token is refused -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{client2Token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('The old token no longer works', () => pm.response.to.have.status(401));",
+                  "pm.test('No bookings are returned', () => pm.expect(pm.response.json()).to.not.have.property('bookings'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

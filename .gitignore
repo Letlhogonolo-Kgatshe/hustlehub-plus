@@ -1,0 +1,6 @@
+# each app folder has its own .gitignore too
+node_modules/
+.env
+*.log
+logs/
+newman-report.json

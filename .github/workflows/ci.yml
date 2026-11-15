@@ -1,0 +1,259 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+
+    env:
+      NODE_ENV: test
+      PORT: 5000
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-only-throwaway-secret-at-least-32-chars' }}
+      MONGO_URI: mongodb://localhost:27017/hustlehub
+      SSL_KEY_PATH: ./certs/localhost-key.pem
+      SSL_CERT_PATH: ./certs/localhost.pem
+      CLIENT_ORIGIN: http://localhost:5173
+      AUTH_RATE_LIMIT_MAX: 50
+      ADMIN_EMAIL: ci-admin@example.com
+      ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD || 'CiThrowawayAdmin1!' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/27017) >/dev/null 2>&1; then
+              echo "MongoDB is accepting connections"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MongoDB did not become ready in 60 seconds"
+          exit 1
+
+      - name: Unit tests
+        working-directory: api
+        run: npm run test:unit
+
+      - name: Generate a throwaway certificate
+        working-directory: api
+        run: |
+          mkdir -p certs
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout certs/localhost-key.pem \
+            -out certs/localhost.pem \
+            -subj "/CN=localhost"
+          chmod 644 certs/localhost-key.pem certs/localhost.pem
+
+      - name: Seed the admin account
+        working-directory: api
+        run: npm run seed:admin
+
+      - name: Start the API
+        working-directory: api
+        run: |
+          node src/server.js > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sk --fail https://localhost:5000/api/health > /dev/null; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not start"
+          cat api.log
+          exit 1
+
+      - name: Generate an expired token
+        working-directory: api
+        run: |
+          TOKEN=$(node generate-expired-token.js | grep -E '^eyJ' | head -1)
+          if [ -z "$TOKEN" ]; then
+            echo "Could not generate an expired token"
+            exit 1
+          fi
+          echo "EXPIRED_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          sleep 3
+
+      - name: Run the Postman collection with Newman
+        working-directory: api
+        run: |
+          npm run test:api -- \
+            --env-var "adminEmail=$ADMIN_EMAIL" \
+            --env-var "adminPassword=$ADMIN_PASSWORD" \
+            --env-var "expiredToken=$EXPIRED_TOKEN"
+
+      - name: Upload the API log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-log
+          path: api/api.log
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Lint
+        working-directory: client
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: client
+        run: npm test
+
+      - name: Build
+        working-directory: client
+        run: npm run build
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          (cd api && npm ci)
+          (cd client && npm ci)
+          pip install semgrep
+
+      - name: Prepare the report folder
+        run: mkdir -p reports
+
+      - name: ESLint report
+        continue-on-error: true
+        run: |
+          (cd api && npx eslint . --format json --output-file ../reports/eslint-api.json)
+          (cd client && npx eslint . --format json --output-file ../reports/eslint-client.json)
+
+      - name: Dependency audit report
+        continue-on-error: true
+        run: |
+          (cd api && npm audit --json > ../reports/npm-audit-api.json) || true
+          (cd client && npm audit --json > ../reports/npm-audit-client.json) || true
+
+      - name: Semgrep report
+        continue-on-error: true
+        run: semgrep --config p/javascript --config p/security-audit --json --output reports/semgrep.json --metrics off api client
+
+      - name: Upload the reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: reports/
+
+      - name: Fail on ESLint errors
+        run: |
+          (cd api && npm run lint)
+          (cd client && npm run lint)
+
+      - name: Fail on vulnerable production dependencies
+        run: |
+          (cd api && npm audit --omit=dev --audit-level=high)
+          (cd client && npm audit --omit=dev --audit-level=high)
+
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create the environment files
+        run: |
+          cat > .env <<ENVFILE
+          MONGO_ROOT_USERNAME=hustlehub
+          MONGO_ROOT_PASSWORD=$(openssl rand -hex 16)
+          MONGO_APP_USERNAME=hustlehub_app
+          MONGO_APP_PASSWORD=$(openssl rand -hex 16)
+          ENVFILE
+          cat > api/.env <<ENVFILE
+          JWT_SECRET=$(openssl rand -hex 32)
+          AUTH_RATE_LIMIT_MAX=50
+          ENVFILE
+
+      - name: Generate a throwaway certificate
+        run: |
+          mkdir -p api/certs
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout api/certs/localhost-key.pem \
+            -out api/certs/localhost.pem \
+            -subj "/CN=localhost"
+          chmod 644 api/certs/localhost-key.pem api/certs/localhost.pem
+
+      - name: Build the images
+        run: docker compose build
+
+      - name: Start the stack
+        run: docker compose up -d
+
+      - name: Smoke test the API
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk --fail https://localhost:5000/api/health > /dev/null; then
+              echo "API answered"
+              break
+            fi
+            sleep 3
+          done
+          curl -sk --fail https://localhost:5000/api/health
+
+      - name: Smoke test the client
+        run: curl -s --fail http://localhost:8080 > /dev/null
+
+      - name: Show the logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down

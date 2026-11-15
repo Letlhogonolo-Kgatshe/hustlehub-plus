@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="80" failures="0" errors="0" time="13.5970252">
+    <testsuite name="src/App.test.jsx" timestamp="2026-11-08T19:24:02.183Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="0.5589175">
+        <testcase classname="src/App.test.jsx" name="/browse &gt; sends logged-out visitors to the login page" time="0.4520564">
+        </testcase>
+        <testcase classname="src/App.test.jsx" name="/browse &gt; sends a freelancer to the access denied page" time="0.0527105">
+        </testcase>
+        <testcase classname="src/App.test.jsx" name="/browse &gt; shows the page to a client" time="0.0454608">
+            <system-err>
+An update to BrowsePage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to BrowsePage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() =&gt; {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you&apos;re testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/ProtectedRoute.test.jsx" timestamp="2026-11-08T19:24:02.187Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="0.1082548">
+        <testcase classname="src/ProtectedRoute.test.jsx" name="ProtectedRoute &gt; sends logged-out visitors to login" time="0.0839217">
+        </testcase>
+        <testcase classname="src/ProtectedRoute.test.jsx" name="ProtectedRoute &gt; sends the wrong role to the access denied page" time="0.0110818">
+        </testcase>
+        <testcase classname="src/ProtectedRoute.test.jsx" name="ProtectedRoute &gt; lets the right role through" time="0.0070431">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/api.test.js" timestamp="2026-11-08T19:24:02.189Z" hostname="hustlehub" tests="4" failures="0" errors="0" skipped="0" time="0.0285635">
+        <testcase classname="src/api.test.js" name="api &gt; shows the message key from the server" time="0.0149408">
+        </testcase>
+        <testcase classname="src/api.test.js" name="api &gt; shows the error key from the server" time="0.0021532">
+        </testcase>
+        <testcase classname="src/api.test.js" name="api &gt; exposes the status and Retry-After on a 429" time="0.0035955">
+        </testcase>
+        <testcase classname="src/api.test.js" name="api &gt; gives a friendly message when the server is unreachable" time="0.0014769">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/bookingsApi.test.js" timestamp="2026-11-08T19:24:02.192Z" hostname="hustlehub" tests="1" failures="0" errors="0" skipped="0" time="0.0117302">
+        <testcase classname="src/bookingsApi.test.js" name="fetchIncome &gt; asks the server" time="0.0084632">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/Layout.test.jsx" timestamp="2026-11-08T19:24:02.192Z" hostname="hustlehub" tests="4" failures="0" errors="0" skipped="0" time="0.6656649">
+        <testcase classname="src/components/Layout.test.jsx" name="Layout &gt; shows client links and hides freelancer links" time="0.4101297">
+        </testcase>
+        <testcase classname="src/components/Layout.test.jsx" name="Layout &gt; shows freelancer links and hides client links" time="0.0457315">
+        </testcase>
+        <testcase classname="src/components/Layout.test.jsx" name="Layout &gt; shows log in and sign up links to guests" time="0.0374057">
+        </testcase>
+        <testcase classname="src/components/Layout.test.jsx" name="Layout &gt; logs out and returns to the login page when Logout is clicked" time="0.16443">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/Notice.test.jsx" timestamp="2026-11-08T19:24:02.194Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="0.3424054">
+        <testcase classname="src/components/Notice.test.jsx" name="Notice &gt; announces errors with the alert role" time="0.2943144">
+        </testcase>
+        <testcase classname="src/components/Notice.test.jsx" name="Notice &gt; uses the status role for success messages" time="0.0231763">
+        </testcase>
+        <testcase classname="src/components/Notice.test.jsx" name="Notice &gt; shows markup as plain text instead of rendering it" time="0.0149791">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/format.test.js" timestamp="2026-11-08T19:24:02.196Z" hostname="hustlehub" tests="2" failures="0" errors="0" skipped="0" time="0.0100163">
+        <testcase classname="src/format.test.js" name="format &gt; formats money as South African rand" time="0.004744">
+        </testcase>
+        <testcase classname="src/format.test.js" name="format &gt; formats dates, short references and statuses for display" time="0.001655">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/incomeChart.test.js" timestamp="2026-11-08T19:24:02.198Z" hostname="hustlehub" tests="10" failures="0" errors="0" skipped="0" time="0.0180422">
+        <testcase classname="src/incomeChart.test.js" name="fillMonths &gt; sorts the months and puts back missing ones as zero" time="0.0067338">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="fillMonths &gt; crosses into the next year" time="0.0006222">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="fillMonths &gt; keeps only the latest 12 months" time="0.0021123">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="fillMonths &gt; returns nothing for no months" time="0.0004639">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="niceTicks &gt; rounds the axis up to a clean step" time="0.000722">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="niceTicks &gt; has a single tick when nothing was earned" time="0.0003368">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="labels &gt; writes rand axis labels in full below 10 000 and compact above" time="0.0012804">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="labels &gt; gives the month a date falls in, in UTC like the server" time="0.0005615">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="labels &gt; names months" time="0.0005641">
+        </testcase>
+        <testcase classname="src/incomeChart.test.js" name="labels &gt; shows shares as whole percentages, never 0% for a part that exists" time="0.0007396">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/BrowsePage.test.jsx" timestamp="2026-11-08T19:24:02.203Z" hostname="hustlehub" tests="5" failures="0" errors="0" skipped="0" time="0.9268501">
+        <testcase classname="src/pages/BrowsePage.test.jsx" name="BrowsePage &gt; shows a loading state, then the gigs" time="0.2355144">
+        </testcase>
+        <testcase classname="src/pages/BrowsePage.test.jsx" name="BrowsePage &gt; filters the list when the user types in the search box" time="0.4115363">
+        </testcase>
+        <testcase classname="src/pages/BrowsePage.test.jsx" name="BrowsePage &gt; shows the empty state and recovers with Clear search" time="0.1131984">
+        </testcase>
+        <testcase classname="src/pages/BrowsePage.test.jsx" name="BrowsePage &gt; shows an error notice and retries" time="0.1125657">
+        </testcase>
+        <testcase classname="src/pages/BrowsePage.test.jsx" name="BrowsePage &gt; renders gig text as plain text, never as HTML" time="0.0451494">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/GigDetailPage.test.jsx" timestamp="2026-11-08T19:24:02.206Z" hostname="hustlehub" tests="4" failures="0" errors="0" skipped="0" time="0.8084617">
+        <testcase classname="src/pages/GigDetailPage.test.jsx" name="GigDetailPage &gt; shows the gig details" time="0.4399477">
+        </testcase>
+        <testcase classname="src/pages/GigDetailPage.test.jsx" name="GigDetailPage &gt; shows a confirmation with the transaction reference after booking" time="0.1505592">
+        </testcase>
+        <testcase classname="src/pages/GigDetailPage.test.jsx" name="GigDetailPage &gt; shows a clear message when the booking is rate limited" time="0.1672126">
+        </testcase>
+        <testcase classname="src/pages/GigDetailPage.test.jsx" name="GigDetailPage &gt; shows a not found notice for an unknown gig" time="0.0413516">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/Home.test.jsx" timestamp="2026-11-08T19:24:02.208Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="0.422578">
+        <testcase classname="src/pages/Home.test.jsx" name="Home &gt; shows the welcome page to visitors who are not logged in" time="0.3905471">
+        </testcase>
+        <testcase classname="src/pages/Home.test.jsx" name="Home &gt; sends freelancers to their gigs" time="0.0157698">
+        </testcase>
+        <testcase classname="src/pages/Home.test.jsx" name="Home &gt; shows Browse to clients" time="0.0083462">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/IncomePage.test.jsx" timestamp="2026-11-08T19:24:02.212Z" hostname="hustlehub" tests="14" failures="0" errors="0" skipped="0" time="1.7245398">
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage &gt; shows the server totals in rand and the bookings table" time="0.5079016">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage &gt; shows the total from the server, not a sum of the rows" time="0.0446535">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage &gt; shows an empty state and R 0,00 before any booking" time="0.0731988">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage &gt; shows an error notice and retries" time="0.1241684">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; shows the estimated tax and take-home from the server" time="0.0931002">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; draws a column for every month, including a month with no income" time="0.0824924">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; shows a month&apos;s total on hover and on keyboard focus" time="0.270143">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; splits what was earned into take-home and estimated tax" time="0.0922716">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; measures the tax split against this tax year&apos;s income, not all-time income" time="0.0640147">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; leaves months that have not happened yet off the chart" time="0.0831803">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; says so when the server estimates no tax" time="0.0709099">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; lists the chart numbers in a table" time="0.15465">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; shows an empty state instead of charts before any paid booking" time="0.0309527">
+        </testcase>
+        <testcase classname="src/pages/IncomePage.test.jsx" name="IncomePage dashboard &gt; shows the totals only when the server sends no tax fields" time="0.0254135">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/Login.test.jsx" timestamp="2026-11-08T19:24:02.219Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="1.3624292">
+        <testcase classname="src/pages/Login.test.jsx" name="Login page &gt; renders the email and password fields and a log in button" time="0.4209586">
+        </testcase>
+        <testcase classname="src/pages/Login.test.jsx" name="Login page &gt; shows a readable message and does not log in when the credentials are wrong" time="0.5404539">
+        </testcase>
+        <testcase classname="src/pages/Login.test.jsx" name="Login page &gt; sends a freelancer to My gigs after a successful login" time="0.3938912">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/MyBookingsPage.test.jsx" timestamp="2026-11-08T19:24:02.221Z" hostname="hustlehub" tests="4" failures="0" errors="0" skipped="0" time="0.6456675">
+        <testcase classname="src/pages/MyBookingsPage.test.jsx" name="MyBookingsPage &gt; lists bookings with gig title, price, date, status and references" time="0.1699677">
+        </testcase>
+        <testcase classname="src/pages/MyBookingsPage.test.jsx" name="MyBookingsPage &gt; says when only the newest bookings are shown" time="0.036822">
+        </testcase>
+        <testcase classname="src/pages/MyBookingsPage.test.jsx" name="MyBookingsPage &gt; shows an empty state with a link to browse" time="0.2627772">
+        </testcase>
+        <testcase classname="src/pages/MyBookingsPage.test.jsx" name="MyBookingsPage &gt; shows an error notice and retries" time="0.1692988">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/Mygigs.test.jsx" timestamp="2026-11-08T19:24:02.223Z" hostname="hustlehub" tests="7" failures="0" errors="0" skipped="0" time="2.4350692">
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; shows an empty state before the freelancer has any gigs" time="0.1005797">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; lists the freelancer&apos;s gigs from the API" time="0.0809987">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; creates a gig and shows it in the list" time="1.4522238">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; does not call the API when the form is invalid" time="0.1187198">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; edits a gig and updates the list" time="0.5074179">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; asks before deleting, then removes the gig" time="0.1390921">
+        </testcase>
+        <testcase classname="src/pages/Mygigs.test.jsx" name="My gigs page &gt; shows a readable message if the gigs cannot be loaded" time="0.0278876">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/Register.test.jsx" timestamp="2026-11-08T19:24:02.227Z" hostname="hustlehub" tests="3" failures="0" errors="0" skipped="0" time="3.0707383">
+        <testcase classname="src/pages/Register.test.jsx" name="Register page &gt; blocks a weak password and a missing role without calling the API" time="1.1012196">
+        </testcase>
+        <testcase classname="src/pages/Register.test.jsx" name="Register page &gt; registers with the chosen role and then shows the login page" time="1.0340519">
+        </testcase>
+        <testcase classname="src/pages/Register.test.jsx" name="Register page &gt; shows the API message when the email is already taken" time="0.9289252">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/pages/WelcomePage.test.jsx" timestamp="2026-11-08T19:24:02.229Z" hostname="hustlehub" tests="1" failures="0" errors="0" skipped="0" time="0.4480068">
+        <testcase classname="src/pages/WelcomePage.test.jsx" name="WelcomePage &gt; explains the app and offers sign up and login" time="0.4405738">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/passwordRules.test.js" timestamp="2026-11-08T19:24:02.231Z" hostname="hustlehub" tests="6" failures="0" errors="0" skipped="0" time="0.0090898">
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; accepts a long password with every character type" time="0.0039525">
+        </testcase>
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; rejects a password with too short" time="0.0004607">
+        </testcase>
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; rejects a password with no uppercase" time="0.0003754">
+        </testcase>
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; rejects a password with no lowercase" time="0.0002913">
+        </testcase>
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; rejects a password with no number" time="0.0002991">
+        </testcase>
+        <testcase classname="src/passwordRules.test.js" name="passwordIsStrong &gt; rejects a password with no symbol" time="0.0003252">
+        </testcase>
+    </testsuite>
+</testsuites>
